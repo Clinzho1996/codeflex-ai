@@ -7,11 +7,29 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+// Define types for VAPI events
+interface TranscriptMessage {
+	type: "transcript";
+	transcriptType: "final" | "partial";
+	transcript: string;
+	role: "user" | "assistant" | "system";
+}
+
+interface VapiEvent {
+	type: string;
+	// Add other potential properties as needed
+}
+
+interface Message {
+	content: string;
+	role: "user" | "assistant" | "system";
+}
+
 const GenerateProgramPage = () => {
 	const [callActive, setCallActive] = useState(false);
 	const [connecting, setConnecting] = useState(false);
 	const [isSpeaking, setIsSpeaking] = useState(false);
-	const [messages, setMessages] = useState<any[]>([]);
+	const [messages, setMessages] = useState<Message[]>([]);
 	const [callEnded, setCallEnded] = useState(false);
 
 	const { user } = useUser();
@@ -23,7 +41,7 @@ const GenerateProgramPage = () => {
 	useEffect(() => {
 		const originalError = console.error;
 		// override console.error to ignore "Meeting has ended" errors
-		console.error = function (msg, ...args) {
+		console.error = function (msg: any, ...args: any[]) {
 			if (
 				msg &&
 				(msg.includes("Meeting has ended") ||
@@ -88,14 +106,23 @@ const GenerateProgramPage = () => {
 			console.log("AI stopped Speaking");
 			setIsSpeaking(false);
 		};
-		const handleMessage = (message: any) => {
-			if (message.type === "transcript" && message.transcriptType === "final") {
-				const newMessage = { content: message.transcript, role: message.role };
+
+		const handleMessage = (message: TranscriptMessage | VapiEvent) => {
+			if (
+				message.type === "transcript" &&
+				"transcriptType" in message &&
+				message.transcriptType === "final"
+			) {
+				const transcriptMessage = message as TranscriptMessage;
+				const newMessage: Message = {
+					content: transcriptMessage.transcript,
+					role: transcriptMessage.role,
+				};
 				setMessages((prev) => [...prev, newMessage]);
 			}
 		};
 
-		const handleError = (error: any) => {
+		const handleError = (error: Error) => {
 			console.log("Vapi Error", error);
 			setConnecting(false);
 			setCallActive(false);
