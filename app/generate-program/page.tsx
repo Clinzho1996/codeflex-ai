@@ -41,7 +41,7 @@ const GenerateProgramPage = () => {
 	useEffect(() => {
 		const originalError = console.error;
 		// override console.error to ignore "Meeting has ended" errors
-		console.error = function (msg: any, ...args: any[]) {
+		console.error = function (msg: string, ...args: string[]) {
 			if (
 				msg &&
 				(msg.includes("Meeting has ended") ||
